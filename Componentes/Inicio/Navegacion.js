@@ -1,10 +1,11 @@
+// esta es la nevagcion entres pantallas
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { AppPrincipal } from '../../AppPrincipal';
 import ListaItems from '../Items/PrincipalItems';
-import { lugaresData } from '../../data/LugaresData2';
+import { lugaresData } from '../../data/LugaresData';
 import ColaboradoresTemplate from './ColaboradoresTemplate';
 import { Emergencias } from '../Items/Emergencias';
 import Wrapper from './Wrapper';

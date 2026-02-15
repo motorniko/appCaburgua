@@ -1,9 +1,11 @@
+//aqui se dibujan los itens de la pagina principal(primera pantalla)
+
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { lugaresData } from '../../data/LugaresData2';
+import { lugaresData } from '../../data/LugaresData';
 
 
 

@@ -1,5 +1,5 @@
 
-export const recordatoriosData = [
+/**export const recordatoriosData = [
   
     "Bota la basura solo en lugares habilitados",
 
@@ -23,4 +23,4 @@ export const recordatoriosData = [
 
     "Cuida tus pertenencias, mascotas y niños",
 
-  ];
+  ];**/

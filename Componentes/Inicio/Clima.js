@@ -6,70 +6,72 @@ export function Clima() {
   const [clima, setClima] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const OPENWEATHER_API_KEY = "952748bdde358938380085e61c82ec8f";
-  const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
-
-  const fetchOw = async () => {
-
+  const fetchCaburguaClima = async () => {
     try {
-      setLoading(true)
-      const payload = {
-        "q": "Caburgua,CL",  // Usar nombre ciudad
-        "appid": OPENWEATHER_API_KEY,
-        "units": "metric",
-        "lang": "es"
-      }
+      setLoading(true);
 
-      const queryString = new URLSearchParams(payload).toString();
-      const url = `${OPENWEATHER_BASE_URL}?${queryString}`;
-      const response = await fetch(url);
+      const response = await fetch(
+        "https://api-caburgua.services.syntaxit.cl/clima"
+      );
+
       const data = await response.json();
-      const parse = {
-        "ciudad": data.get?.("name") || "Caburgua",
-        "temperatura": data.main.temp,
-        "descripcion": data.weather[0].description,
-        "icono": data.weather[0].icon,
-      }
-      setClima(parse);
-    } catch (e) {
-      console.error("Error cargando clima:",e);
+
+      setClima({
+        ciudad: data.ciudad || "Caburgua",
+        temperatura: `${data.temperatura} °C`,
+        descripcion: data.descripcion || "Clima no disponible",
+        icono: data.icono || "01d"
+      });
+
+    } catch (error) {
+      console.error("Error cargando clima:", error);
+
+      setClima({
+        ciudad: "Caburgua",
+        temperatura: "-- °C",
+        descripcion: "No se pudo cargar el clima",
+        icono: "01d"
+      });
+
     } finally {
       setLoading(false);
     }
-
-  }
+  };
 
   useEffect(() => {
-    fetchOw();
-  }, [ ]);
+    fetchCaburguaClima();
+  }, []);
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.blurWrapper}>
         <BlurView intensity={50} tint="dark" style={styles.container}>
-          <Text style={styles.title}>Clima Local:</Text>
-            { loading 
-              ? (
-                <ActivityIndicator color="#fff" />
-              ) 
-              : clima 
-                ? (
-                  <View style={styles.info}>
-                    <Image
-                      source={{
-                        uri: `http://openweathermap.org/img/wn/${clima.icono}@2x.png`,
-                      }}
-                      style={styles.icon}
-                    />
-                    <Text style={styles.text}>
-                      {clima.descripcion} | {Math.round(clima.temperatura)}°C
-                    </Text>
-                  </View>
-                ) 
-                : (
-                  <Text style={styles.text}>Sin conexion a Internet</Text>
-                )
-            }
+
+          <Text style={styles.title}>Clima Local</Text>
+
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : clima ? (
+            <View style={styles.info}>
+              <Image
+                source={{
+                  uri: `https://openweathermap.org/img/wn/${clima.icono}@2x.png`
+                }}
+                style={styles.icon}
+              />
+              <View>
+                <Text style={styles.text}>
+                  {clima.ciudad} · {clima.temperatura}
+                </Text>
+                <Text style={styles.subtext}>
+                  {clima.descripcion}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.text}>Sin conexión a Internet</Text>
+          )}
+
         </BlurView>
       </View>
     </View>
@@ -81,37 +83,40 @@ const styles = StyleSheet.create({
     marginBottom: 35,
     width: "90%",
     marginVertical: 15,
-    alignItems: "center",
+    alignItems: "center"
   },
   blurWrapper: {
     borderRadius: 15,
-    overflow: "hidden", //hace que BlurView respete las esquinas
-    width: "100%",
+    overflow: "hidden",
+    width: "100%"
   },
   container: {
-    height: 50,
+    height: 70,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: "10%", // se adapta al ancho
+    paddingHorizontal: "10%"
   },
-
   title: {
     fontWeight: "bold",
     fontSize: 20,
     color: "#fff",
-    marginRight: 5,
+    marginRight: 15
   },
   info: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "center"
   },
   text: {
     color: "#fff",
-    fontSize: 18,
-    marginLeft: 10,
+    fontSize: 18
+  },
+  subtext: {
+    color: "#ddd",
+    fontSize: 14
   },
   icon: {
     width: 40,
     height: 40,
-  },
+    marginRight: 10
+  }
 });

@@ -1,4 +1,4 @@
-
+// aqui se dibuja la lista de colaboradores (2 pantalla) 
 import React from "react";
 import {
   View,

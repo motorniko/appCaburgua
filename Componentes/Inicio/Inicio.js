@@ -1,3 +1,4 @@
+//Este es el inicio de la aplicacion 
 import { View, Text, StyleSheet } from 'react-native';
 
 export function Inicio() {

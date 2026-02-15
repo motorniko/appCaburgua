@@ -1,4 +1,7 @@
 // Componentes/Inicio/NavServicios/ColaboradoresTemplate.js
+//aqui se dibuja la plantilla del cliente
+
+
 import React, { useState } from "react";
 import {
   View,
