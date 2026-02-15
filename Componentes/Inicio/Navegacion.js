@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -24,9 +25,11 @@ export default function Navegacion() {
       );
 
       const data = await response.json();
-      setLugaresData(data);
+      setLugaresData(Array.isArray(data) ? data : []);
+
     } catch (error) {
       console.error("Error cargar lugares:", error);
+      setLugaresData([]);
     } finally {
       setLoading(false);
     }
@@ -40,21 +43,22 @@ export default function Navegacion() {
     return <ActivityIndicator size="large" color="#000" />;
   }
 
-  const lugares = lugaresData.filter((item) => item.enable);
+  const lugaresActivos = lugaresData.filter(l => l.enable);
 
-  const itemsActivos = lugares.flatMap((lugar) =>
+  const itemsActivos = lugaresActivos.flatMap((lugar) =>
     Array.isArray(lugar.items)
       ? lugar.items.filter((item) => item.enable)
       : []
   );
 
   const getScreenFromLugar = (lugar) => {
-    if (Array.isArray(lugar.items)) {
+
+    if (Array.isArray(lugar.items) && lugar.items.length > 0) {
       return {
         component: ListaItems,
         props: {
           titulo: lugar.title,
-          data: lugar.items,
+          data: lugar.items.filter(i => i.enable),
         },
       };
     }
@@ -72,24 +76,26 @@ export default function Navegacion() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
+
         <Stack.Screen
           name="Inicio"
           component={AppPrincipal}
           options={{ headerShown: false }}
         />
 
-        {lugares.map((lugar) => {
+        {lugaresActivos.map((lugar) => {
           const screenConfig = getScreenFromLugar(lugar);
           if (!screenConfig) return null;
-
-          const { component, props } = screenConfig;
 
           return (
             <Stack.Screen
               key={lugar.id}
               name={lugar.title}
               component={Wrapper}
-              initialParams={{ component, props }}
+              initialParams={{
+                component: screenConfig.component,
+                props: screenConfig.props,
+              }}
             />
           );
         })}
@@ -105,6 +111,7 @@ export default function Navegacion() {
             }}
           />
         ))}
+
       </Stack.Navigator>
     </NavigationContainer>
   );

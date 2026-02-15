@@ -1,4 +1,3 @@
-// aqui se dibujan los items de la pagina principal (primera pantalla)
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
@@ -21,10 +20,11 @@ export function Directorio() {
       );
 
       const data = await response.json();
-      setLugaresData(data); // ✅ corregido
+      setLugaresData(Array.isArray(data) ? data : []);
 
     } catch (error) {
       console.error("Error cargar lugares:", error);
+      setLugaresData([]);
     } finally {
       setLoading(false);
     }
@@ -34,6 +34,8 @@ export function Directorio() {
     fetchDirectorio();
   }, []);
 
+  const lugaresActivos = lugaresData.filter(l => l.enable);
+
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
@@ -42,40 +44,37 @@ export function Directorio() {
           <ActivityIndicator size="large" color="#000" />
         )}
 
-        {!loading && lugaresData.length === 0 && (
+        {!loading && lugaresActivos.length === 0 && (
           <Text>No hay categorías disponibles</Text>
         )}
 
-        {!loading && lugaresData.length > 0 &&
-          lugaresData.map((lugar) => (
-            <TouchableOpacity
-              key={lugar.id}
-              style={[
-                styles.item,
-                { borderColor: lugar.color, borderWidth: 3 }
+        {!loading && lugaresActivos.map((lugar) => (
+          <TouchableOpacity
+            key={lugar.id}
+            style={[
+              styles.item,
+              { borderColor: lugar.color || '#000', borderWidth: 3 }
+            ]}
+            onPress={() => navigation.navigate(lugar.title)}
+          >
+            <LinearGradient
+              colors={[
+                `${lugar.color || '#000'}cc`,
+                `${lugar.color || '#000'}80`
               ]}
-              onPress={() => {
-                if (Boolean(lugar.enable)) {
-                  navigation.navigate(lugar.title);
-                }
-              }}
+              style={styles.gradient}
             >
-              <LinearGradient
-                colors={[`${lugar.color}cc`, `${lugar.color}80`]}
-                style={styles.gradient}
-              >
-                <MaterialCommunityIcons
-                  name={lugar.icon}
-                  size={62}
-                  color="#fff"
-                />
-                <Text style={styles.itemTitle}>
-                  {lugar.title}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))
-        }
+              <MaterialCommunityIcons
+                name={lugar.icon || "help-circle"}
+                size={62}
+                color="#fff"
+              />
+              <Text style={styles.itemTitle}>
+                {lugar.title}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        ))}
 
       </View>
     </View>

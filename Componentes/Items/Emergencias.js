@@ -1,35 +1,60 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+  ActivityIndicator
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export function Emergencias() {
-  const items = [
-    { id: 1, title: 'Ambulancia', icon: 'ambulance', numero: '131' },
-    { id: 2, title: 'Bomberos', icon: 'fire-truck', numero: '133' },
-    { id: 3, title: 'Carabineros', icon: 'police-badge', numero: '133' },
-    { id: 4, title: 'Guardia Marina', icon: 'anchor', numero: '300' },
-    { id: 5, title: 'PDI', icon: 'badge-account', numero: '134' },
-    { id: 6, title: 'CONAF', icon: 'pine-tree', numero: '130' },
-  ];
+
+  const [loading, setLoading] = useState(false);
+  const [emergencias, setEmergencias] = useState([]);
+
+  const fetchEmergencias = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "https://api-caburgua.services.syntaxit.cl/emergencias"
+      );
+
+      const data = await response.json();
+      setEmergencias(Array.isArray(data) ? data : []);
+
+    } catch (error) {
+      console.error("Error cargando emergencias:", error);
+      setEmergencias([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmergencias();
+  }, []);
 
   const llamar = (numero) => {
     const url = `tel:${numero}`;
-    Linking.canOpenURL(url)
-      .then(supported => {
-        if (supported) {
-          Linking.openURL(url);
-        }
-      })
-      .catch(err => console.error('Error al intentar llamar', err));
+    Linking.openURL(url).catch(err =>
+      console.error('Error al intentar llamar', err)
+    );
   };
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#FF4B4B" />;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Emergencias</Text>
 
       <View style={styles.grid}>
-        {items.map(item => (
+        {emergencias.map(item => (
           <TouchableOpacity
             key={item.id}
             style={[styles.item, { borderColor: '#FF4B4B', borderWidth: 3 }]}
@@ -40,8 +65,14 @@ export function Emergencias() {
               colors={['#FF4B4B', '#C0392B']}
               style={styles.gradient}
             >
-              <MaterialCommunityIcons name={item.icon} size={50} color="#fff" />
-              <Text style={styles.itemTitle}>{item.title}</Text>
+              <MaterialCommunityIcons
+                name={item.icon || "alert"}
+                size={50}
+                color="#fff"
+              />
+              <Text style={styles.itemTitle}>
+                {item.title}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         ))}
@@ -49,9 +80,9 @@ export function Emergencias() {
 
       <View style={styles.advertencia}>
         <Text style={styles.advtex}>
-         🚨 Los números de emergencia son para casos urgentes.
-         Llama solo en situaciones reales que requieran ayuda inmediata.
-         Úsalos con responsabilidad.
+          🚨 Los números de emergencia son para casos urgentes.
+          Llama solo en situaciones reales que requieran ayuda inmediata.
+          Úsalos con responsabilidad.
         </Text>
       </View>
     </View>
@@ -64,7 +95,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
   },
-
   title: {
     fontSize: 40,
     fontWeight: 'bold',
@@ -72,18 +102,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 40,
     marginBottom: 40,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
-
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-evenly',
     width: '95%',
   },
-
   item: {
     width: '45%',
     height: 120,
@@ -91,7 +116,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     overflow: 'hidden',
   },
-
   gradient: {
     flex: 1,
     justifyContent: 'center',
@@ -99,22 +123,13 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 5,
   },
-
   itemTitle: {
     marginTop: 8,
     fontWeight: 'bold',
     fontSize: 23,
     color: '#fff',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
-
-  phoneIcon: {
-    marginTop: 5,
-  },
-
   advertencia: {
     width: 350,
     marginTop: 10,
@@ -123,8 +138,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
   },
-
-  advtex:{
+  advtex: {
     fontSize: 20,
     padding: 10,
   }
