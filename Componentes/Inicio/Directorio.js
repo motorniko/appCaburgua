@@ -1,40 +1,82 @@
-//aqui se dibujan los itens de la pagina principal(primera pantalla)
+// aqui se dibujan los items de la pagina principal (primera pantalla)
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { lugaresData } from '../../data/LugaresData';
-
-
 
 export function Directorio() {
+  const [loading, setLoading] = useState(false);
+  const [lugaresData, setLugaresData] = useState([]);
+
   const navigation = useNavigation();
-  
+
+  const fetchDirectorio = async () => {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "https://api-caburgua.services.syntaxit.cl/api/v1/categorias/export"
+      );
+
+      const data = await response.json();
+      setLugaresData(data); // ✅ corregido
+
+    } catch (error) {
+      console.error("Error cargar lugares:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDirectorio();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
-        {lugaresData.map(lugar => (
-          <TouchableOpacity 
-          key={lugar.id} 
-          style={[styles.item, { borderColor: lugar.color, borderWidth: 3 }]} 
-         
-          onPress={() => {
-            if (lugar.enable) {
-              navigation.navigate(lugar.title);
-            }
-          }}
-        >
-          <LinearGradient
-            colors={[`${lugar.color}cc`, `${lugar.color}80`]} 
-            style={styles.gradient}
-          >
-            <MaterialCommunityIcons name={lugar.icon} size={62} color="#fff" />
-            <Text style={styles.itemTitle}>{lugar.title}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      ))}
+
+        {loading && (
+          <ActivityIndicator size="large" color="#000" />
+        )}
+
+        {!loading && lugaresData.length === 0 && (
+          <Text>No hay categorías disponibles</Text>
+        )}
+
+        {!loading && lugaresData.length > 0 &&
+          lugaresData.map((lugar) => (
+            <TouchableOpacity
+              key={lugar.id}
+              style={[
+                styles.item,
+                { borderColor: lugar.color, borderWidth: 3 }
+              ]}
+              onPress={() => {
+                if (Boolean(lugar.enable)) {
+                  navigation.navigate(lugar.title);
+                }
+              }}
+            >
+              <LinearGradient
+                colors={[`${lugar.color}cc`, `${lugar.color}80`]}
+                style={styles.gradient}
+              >
+                <MaterialCommunityIcons
+                  name={lugar.icon}
+                  size={62}
+                  color="#fff"
+                />
+                <Text style={styles.itemTitle}>
+                  {lugar.title}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))
+        }
+
       </View>
     </View>
   );
