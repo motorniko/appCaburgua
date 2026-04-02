@@ -5,7 +5,6 @@ import Navegacion from './Componentes/Inicio/Navegacion';
 export default function App() {
   const [fontsLoaded] = useFonts({
     Jungle: require('./assets/Fonts/Jungle.ttf'),
-    //Welfresh: require('./assets/Fonts/Welfresh.otf'),
   });
 
   if (!fontsLoaded) {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, ActivityIndicator, Animated } from "react-native";
 import { BlurView } from "expo-blur";
 
 export function RecordatorioBarra() {
@@ -7,19 +7,17 @@ export function RecordatorioBarra() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     const fetchRecordatorios = async () => {
       try {
         const response = await fetch(
           "https://api-caburgua.services.syntaxit.cl/recordatorios"
         );
-
-        if (!response.ok) {
-          throw new Error("Error en la respuesta del servidor");
-        }
+        if (!response.ok) throw new Error("Error en la respuesta del servidor");
 
         const data = await response.json();
-
         const activos = data.filter((r) => r.activo === true);
         setRecordatorios(activos);
       } catch (error) {
@@ -36,7 +34,18 @@ export function RecordatorioBarra() {
     if (recordatorios.length === 0) return;
 
     const intervalo = setInterval(() => {
-      setIndex((prev) => (prev + 1) % recordatorios.length);
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
+        setIndex((prev) => (prev + 1) % recordatorios.length);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      });
     }, 5000);
 
     return () => clearInterval(intervalo);
@@ -45,48 +54,50 @@ export function RecordatorioBarra() {
   if (loading) {
     return (
       <View style={styles.wrapper}>
-        <ActivityIndicator size="small" color="#fff" />
+        <BlurView intensity={50} tint="dark" style={styles.container}>
+          <ActivityIndicator size="small" color="#fff" />
+        </BlurView>
       </View>
     );
   }
 
-  if (recordatorios.length === 0) {
-    return null;
-  }
+  if (recordatorios.length === 0) return null;
 
   return (
     <View style={styles.wrapper}>
       <BlurView intensity={50} tint="dark" style={styles.container}>
         <Text style={styles.title}>RECUERDA:</Text>
-        <Text style={styles.text}>
+        <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
           {recordatorios[index].texto}
-        </Text>
+        </Animated.Text>
       </BlurView>
     </View>
   );
 }
 
-
 const styles = StyleSheet.create({
   wrapper: {
-    width: 370,
+    width: "95%",       // ✅ adaptable a cualquier pantalla
     borderRadius: 15,
     overflow: "hidden",
   },
   container: {
-    height: 100,
+    minHeight: 80,      // ✅ crece si el texto es largo
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
   title: {
     fontWeight: "bold",
     fontSize: 18,
     color: "#fff",
-    marginBottom: 10,
+    marginBottom: 6,
   },
   text: {
     color: "yellow",
-    flexShrink: 1,
-    fontSize: 18,
+    fontSize: 17,
+    textAlign: "center",
+    width: "100%",      // ✅ fuerza el ancho completo en Android
   },
 });

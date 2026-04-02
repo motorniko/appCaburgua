@@ -1,31 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-  ActivityIndicator
+  View, Text, StyleSheet, TouchableOpacity,
+  Linking, ActivityIndicator
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export function Emergencias() {
-
   const [loading, setLoading] = useState(false);
   const [emergencias, setEmergencias] = useState([]);
 
   const fetchEmergencias = async () => {
     try {
       setLoading(true);
-
       const response = await fetch(
         "https://api-caburgua.services.syntaxit.cl/emergencias"
       );
-
       const data = await response.json();
       setEmergencias(Array.isArray(data) ? data : []);
-
     } catch (error) {
       console.error("Error cargando emergencias:", error);
       setEmergencias([]);
@@ -38,21 +30,28 @@ export function Emergencias() {
     fetchEmergencias();
   }, []);
 
-  const llamar = (numero) => {
+  // ✅ Ahora usa canOpenURL igual que ColaboradoresTemplate
+  const llamar = async (numero) => {
     const url = `tel:${numero}`;
-    Linking.openURL(url).catch(err =>
-      console.error('Error al intentar llamar', err)
-    );
+    const soportado = await Linking.canOpenURL(url);
+    if (soportado) {
+      Linking.openURL(url);
+    } else {
+      console.error('Este dispositivo no puede realizar llamadas');
+    }
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#FF4B4B" />;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#FF4B4B" />
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Emergencias</Text>
-
       <View style={styles.grid}>
         {emergencias.map(item => (
           <TouchableOpacity
@@ -70,14 +69,11 @@ export function Emergencias() {
                 size={50}
                 color="#fff"
               />
-              <Text style={styles.itemTitle}>
-                {item.title}
-              </Text>
+              <Text style={styles.itemTitle}>{item.title}</Text>
             </LinearGradient>
           </TouchableOpacity>
         ))}
       </View>
-
       <View style={styles.advertencia}>
         <Text style={styles.advtex}>
           🚨 Los números de emergencia son para casos urgentes.
@@ -138,8 +134,5 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
   },
-  advtex: {
-    fontSize: 20,
-    padding: 10,
-  }
+  advtex: { fontSize: 20, padding: 10 }
 });

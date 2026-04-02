@@ -1,35 +1,43 @@
-// aqui se dibuja la lista de colaboradores (2 pantalla) 
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ImageBackground,
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, ImageBackground,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useNavigation } from "@react-navigation/native";
 
+const fondoDefault = require("../../assets/fondo.png");
+
 export default function ListaItems({
   titulo = "",
   data = [],
   colorBase = "#00008B",
-  fondo = require("../../assets/fondo.png"),
+  fondo = null,
 }) {
   const navigation = useNavigation();
+
+  // ✅ Soporta tanto require() como string URL desde la API
+  const fondoSource = fondo
+    ? (typeof fondo === "string" ? { uri: fondo } : fondo)
+    : fondoDefault;
 
   const renderItems = (lista) =>
     lista.map((item) => (
       <TouchableOpacity
         key={item.id}
-        style={[styles.item, { borderColor: item.colorPrincipal || colorBase, borderWidth: 3 }]}
+        style={[
+          styles.item,
+          { borderColor: item.colorPrincipal || colorBase, borderWidth: 3 }
+        ]}
         onPress={() => navigation.navigate(item.title)}
       >
         <LinearGradient
-          colors={[`${item.colorPrincipal || colorBase}cc`, `${item.colorPrincipal || colorBase}80`]}
+          colors={[
+            `${item.colorPrincipal || colorBase}cc`,
+            `${item.colorPrincipal || colorBase}80`
+          ]}
           style={styles.gradient}
         >
           <View style={styles.row}>
@@ -51,7 +59,7 @@ export default function ListaItems({
     ));
 
   return (
-    <ImageBackground source={fondo} style={styles.background} resizeMode="cover">
+    <ImageBackground source={fondoSource} style={styles.background} resizeMode="cover">
       <BlurView intensity={0} tint="dark" style={StyleSheet.absoluteFill} />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.overlay}>
@@ -64,12 +72,9 @@ export default function ListaItems({
 }
 
 const styles = StyleSheet.create({
-
   background: { flex: 1 },
   overlay: { flex: 1, alignItems: "center", paddingVertical: 20 },
   scrollContainer: { paddingBottom: 40 },
-
-
   sectionTitle: {
     width: "92%",
     textAlign: "left",
@@ -82,9 +87,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 3,
   },
-
   grid: { width: "95%" },
-
   item: {
     width: "100%",
     height: 80,
@@ -92,29 +95,20 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     overflow: "hidden",
   },
-
   gradient: {
     flex: 1,
     justifyContent: "center",
     borderRadius: 15,
     paddingHorizontal: 15,
   },
-
-  row: {
-     flexDirection: "row", alignItems: "center" 
-    },
-
-  textContainer: { 
-    flex: 1 
-  },
-
+  row: { flexDirection: "row", alignItems: "center" },
+  textContainer: { flex: 1 },
   itemTitle: {
     fontFamily: "Jungle",
     fontSize: 25,
     color: "#fff",
     marginLeft: 10,
   },
-
   itemDesc: {
     fontSize: 17,
     color: "#fff",

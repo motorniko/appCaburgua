@@ -1,60 +1,34 @@
-
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 
-export function Directorio() {
-  const [loading, setLoading] = useState(false);
-  const [lugaresData, setLugaresData] = useState([]);
+// ✅ Importamos el context en vez de hacer fetch propio
+import { useLugares } from './LugaresContext';
 
+export function Directorio() {
   const navigation = useNavigation();
 
-  const fetchDirectorio = async () => {
-    try {
-      setLoading(true);
-
-      const response = await fetch(
-        "https://api-caburgua.services.syntaxit.cl/api/v1/categorias/export"
-      );
-
-      const data = await response.json();
-      setLugaresData(Array.isArray(data) ? data : []);
-
-    } catch (error) {
-      console.error("Error cargar lugares:", error);
-      setLugaresData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDirectorio();
-  }, []);
-
-  const lugaresActivos = lugaresData.filter(l => l.enable);
+  // ✅ Datos ya cargados por Navegacion, sin segundo fetch
+  const lugaresActivos = useLugares();
 
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
 
-        {loading && (
-          <ActivityIndicator size="large" color="#000" />
-        )}
-
-        {!loading && lugaresActivos.length === 0 && (
+        {lugaresActivos.length === 0 && (
           <Text>No hay categorías disponibles</Text>
         )}
 
-        {!loading && lugaresActivos.map((lugar) => (
+        {lugaresActivos.map((lugar) => (
           <TouchableOpacity
             key={lugar.id}
             style={[
               styles.item,
               { borderColor: lugar.color || '#000', borderWidth: 3 }
             ]}
+            // ✅ Navegamos por title igual que antes (viene de la misma fuente)
             onPress={() => navigation.navigate(lugar.title)}
           >
             <LinearGradient

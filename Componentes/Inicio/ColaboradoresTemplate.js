@@ -1,18 +1,7 @@
-// Componentes/Inicio/NavServicios/ColaboradoresTemplate.js
-//aqui se dibuja la plantilla del cliente
-
-
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Linking,
-  ScrollView,
-  Modal,
-  FlatList,
+  View, Text, StyleSheet, Image, TouchableOpacity,
+  Linking, ScrollView, Modal, FlatList,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -30,7 +19,7 @@ export default function ColaboradoresTemplate({
   coordenadas = { lat: 0, lng: 0 },
   colorFondo = "#B22222",
   colorPrincipal = "#00008B",
-  colorLogo = ""
+  colorLogo = "transparent"  // ✅ valor por defecto válido
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -66,7 +55,13 @@ export default function ColaboradoresTemplate({
     else alert("No se puede abrir el enlace: " + instagramUrl);
   };
 
-  // --- GALERÍA CON EFECTO 3D ---
+  const llamar = async (numero) => {
+    const url = `tel:${numero}`;
+    const soportado = await Linking.canOpenURL(url);
+    if (soportado) Linking.openURL(url);
+    else console.error("Error al intentar llamar");
+  };
+
   const renderItem = ({ item, index }) => (
     <TouchableOpacity
       style={[
@@ -85,24 +80,20 @@ export default function ColaboradoresTemplate({
     </TouchableOpacity>
   );
 
-  const llamar = (numero) => {
-    const url = `tel:${numero}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) Linking.openURL(url);
-      })
-      .catch((err) => console.error("Error al intentar llamar", err));
-  };
-
   return (
     <ScrollView contentContainerStyle={[styles.scroll, { backgroundColor: colorFondo }]}>
       <View style={styles.container}>
-        
+
         {/* HEADER */}
-                <View style={styles.header}>
-                  {imagenLogo && <Image source={imagenLogo} style={styles.logo} borderColor = {colorLogo}/>}
-                  <Text style={styles.title}>{title}</Text>
-                </View>
+        <View style={styles.header}>
+          {imagenLogo && (
+            <Image
+              source={imagenLogo}
+              style={[styles.logo, { borderColor: colorLogo || "transparent" }]} // ✅ corregido
+            />
+          )}
+          <Text style={styles.title}>{title}</Text>
+        </View>
 
         {/* DESCRIPCIÓN */}
         <Text style={styles.description}>{description}</Text>
@@ -118,13 +109,11 @@ export default function ColaboradoresTemplate({
           ))}
         </View>
 
-        {/* GALERÍA PREMIUM */}
-
-          <View style={[styles.gallerySection, { backgroundColor: colorFondo }]}> 
-            <Text style={styles.galeriTitle}>Fotos</Text>
-
+        {/* GALERÍA */}
+        <View style={[styles.gallerySection, { backgroundColor: colorFondo }]}>
+          <Text style={styles.galeriTitle}>Fotos</Text>
           <FlatList
-            data={galeria || []}     // ← FIX IMPORTANTE AQUÍ
+            data={galeria || []}
             keyExtractor={(_, i) => i.toString()}
             renderItem={renderItem}
             numColumns={3}
@@ -168,7 +157,6 @@ export default function ColaboradoresTemplate({
         {/* CONTACTO */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contactos:</Text>
-
           {contacto.telefono ? (
             <View style={styles.itemRow}>
               <MaterialCommunityIcons name="phone" size={22} color={colorPrincipal} />
@@ -179,7 +167,6 @@ export default function ColaboradoresTemplate({
               </TouchableOpacity>
             </View>
           ) : null}
-
           <View style={styles.itemRow}>
             <MaterialCommunityIcons name="web" size={22} color={colorPrincipal} />
             <TouchableOpacity onPress={abrirSitioWeb}>
@@ -201,21 +188,17 @@ export default function ColaboradoresTemplate({
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
               <Text style={[styles.modalTitle, { color: colorPrincipal }]}>Abrir con:</Text>
-
               <TouchableOpacity style={styles.modalBtn} onPress={() => abrirConApp("maps")}>
                 <MaterialCommunityIcons name="google-maps" size={22} color={colorPrincipal} />
                 <Text style={styles.modalBtnText}>Google Maps</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.modalBtn} onPress={() => abrirConApp("waze")}>
                 <MaterialCommunityIcons name="waze" size={22} color={colorPrincipal} />
                 <Text style={styles.modalBtnText}>Waze</Text>
               </TouchableOpacity>
-
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelText}>Cancelar</Text>
               </TouchableOpacity>
-
             </View>
           </View>
         </Modal>
@@ -226,39 +209,19 @@ export default function ColaboradoresTemplate({
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    paddingVertical: 20,
-  },
-  container: {
-    paddingHorizontal: 20,
-    alignItems: "center",
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  
+  scroll: { paddingVertical: 20 },
+  container: { paddingHorizontal: 20, alignItems: "center" },
+  header: { alignItems: "center", marginBottom: 15 },
   logo: {
     width: 110,
     height: 110,
     borderRadius: 60,
     marginBottom: 10,
     borderWidth: 4,
-    borderColor: " ", //definido por el usuario
+    // ✅ borderColor ahora viene del prop colorLogo con fallback a transparent
   },
-  title: {
-    fontSize: 45,
-    fontFamily: 'Jungle',
-    color: "#fff",
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 20,
-    color: "#fff",
-    paddingHorizontal: 10,
-  },
-
-  /* --- SECCIONES --- */
+  title: { fontSize: 45, fontFamily: 'Jungle', color: "#fff" },
+  description: { textAlign: "center", fontSize: 20, color: "#fff", paddingHorizontal: 10 },
   section: {
     width: "100%",
     marginTop: 23,
@@ -268,87 +231,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    backgroundColor: "white",    // Naranja vibrante
+    backgroundColor: "white",
   },
-  sectionTitle: {
-    fontFamily: 'Jungle',
-    fontSize: 22,
-    color: "black",
-    marginBottom: 12,
-  },
-
-  galeriTitle: {
-    fontFamily: 'Jungle',
-    fontSize: 30,
-    color: "white",
-    marginBottom: 12,
-  },
-
-  itemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 4,
-  },
-  text: {
-    marginLeft: 8,
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "black",
-  },
-
-  /* --- GALERÍA PREMIUM 3D --- */
+  sectionTitle: { fontFamily: 'Jungle', fontSize: 22, color: "black", marginBottom: 12 },
+  galeriTitle: { fontFamily: 'Jungle', fontSize: 30, color: "white", marginBottom: 12 },
+  itemRow: { flexDirection: "row", alignItems: "center", marginVertical: 4 },
+  text: { marginLeft: 8, fontSize: 17, fontWeight: "bold", color: "black" },
   gallerySection: {
     width: "100%",
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 12,
     marginTop: 15,
     elevation: 3,
-    borderWidth :2,
-    borderRadius: 30,
+    borderWidth: 2,
     borderColor: "white",
-    backgroundColor: "#00008B",   // Celeste lago
+    backgroundColor: "#00008B",
     alignItems: "center",
   },
-  row: {
-    justifyContent: "space-between",
-  },
+  row: { justifyContent: "space-between" },
   galleryItem: {
     width: "32%",
     aspectRatio: 1,
     marginBottom: 10,
-    //backgroundColor: "#fff",
-    borderRadius: 20, //border radius de la elevacion
+    borderRadius: 20,
     overflow: "hidden",
     padding: 4,
-    //shadowColor: "#000",
-    //shadowOpacity: 0.20,
-    //shadowRadius: 7,
-    //shadowOffset: { width: 0, height: 4 },
     elevation: 5,
   },
-  galleryImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 20,
-  },
-
+  galleryImage: { width: "100%", height: "100%", borderRadius: 20 },
   fullscreenContainer: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.95)",
     justifyContent: "center",
     alignItems: "center",
   },
-  fullscreenImage: {
-    width: "90%",
-    height: "80%",
-  },
-  closeButton: {
-    position: "absolute",
-    top: 50,
-    right: 30,
-  },
-
-  /* BOTONES */
+  fullscreenImage: { width: "90%", height: "80%" },
+  closeButton: { position: "absolute", top: 50, right: 30 },
   button: {
     flexDirection: "row",
     alignItems: "center",
@@ -359,14 +277,7 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 20,
   },
-  buttonText: {
-   color: "black",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 6,
-  },
-
-  /* MODAL */
+  buttonText: { color: "black", fontSize: 16, fontWeight: "bold", marginLeft: 6 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
@@ -380,24 +291,8 @@ const styles = StyleSheet.create({
     width: 250,
     alignItems: "center",
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#00008B",
-    marginBottom: 10,
-  },
-  modalBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  modalBtnText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#333",
-  },
-  cancelText: {
-    color: "red",
-    marginTop: 10,
-  },
+  modalTitle: { fontSize: 18, fontWeight: "bold", color: "#00008B", marginBottom: 10 },
+  modalBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
+  modalBtnText: { marginLeft: 8, fontSize: 16, color: "#333" },
+  cancelText: { color: "red", marginTop: 10 },
 });
