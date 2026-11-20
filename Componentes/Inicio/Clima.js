@@ -11,7 +11,7 @@ export function Clima() {
       setLoading(true);
 
       const response = await fetch(
-        "https://api-caburgua.services.syntaxit.cl/clima"
+        "https://api-caburgua-app.albertolagos59.workers.dev/clima"
       );
 
       const data = await response.json();
