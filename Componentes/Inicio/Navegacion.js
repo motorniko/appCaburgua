@@ -90,11 +90,10 @@ export default function Navegacion() {
       }}
     >
       <NavigationContainer>
-        <Stack.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen
             name="Inicio"
             component={AppPrincipal}
-            options={{ headerShown: false }}
           />
 
           {lugaresConPantalla.map((lugar) => {
