@@ -3,23 +3,24 @@ import { View, Text, StyleSheet } from "react-native";
 import { ComponentRegistry } from "./ComponentRegistry";
 
 export default function Wrapper({ route }) {
-  const { componentName, props } = route.params;
-
-  // ✅ Busca el componente por nombre en el registro
+  const { componentName, props = {}, item } = route?.params || {};
   const Component = ComponentRegistry[componentName];
 
   if (!Component) {
     return (
       <View style={styles.error}>
-        <Text style={styles.errorText}>Error: pantalla "{componentName}" no encontrada.</Text>
+        <Text style={styles.errorText}>
+          Error: pantalla "{componentName || "desconocida"}" no encontrada.
+        </Text>
       </View>
     );
   }
 
-  return <Component {...props} />;
+  const mergedProps = item && typeof item === "object" ? { ...props, ...item } : props;
+  return <Component {...mergedProps} />;
 }
 
 const styles = StyleSheet.create({
-  error: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { fontSize: 18, color: 'red' },
+  error: { flex: 1, justifyContent: "center", alignItems: "center" },
+  errorText: { fontSize: 18, color: "red" },
 });

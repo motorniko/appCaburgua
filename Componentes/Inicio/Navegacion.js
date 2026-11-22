@@ -1,83 +1,96 @@
-import React, { useState, useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { ActivityIndicator, View, AppState } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { AppPrincipal } from "../../AppPrincipal";
 import Wrapper from "./Wrapper";
-
-// ✅ Context en archivo separado, elimina el require cycle
 import { LugaresContext } from "./LugaresContext";
 
 const Stack = createNativeStackNavigator();
+const API_URL = "https://api-caburgua.albertolagos59.workers.dev/categorias/export";
 
 const getScreenFromLugar = (lugar) => {
-  if (Array.isArray(lugar.items) && lugar.items.length > 0) {
-    return {
-      componentName: "ListaItems", // ✅ string en vez de función
-      props: {
-        titulo: lugar.title,
-        data: lugar.items.filter(i => i.enable),
-      },
-    };
-  }
   if (lugar.screen === "EmergenciasScreen") {
     return {
-      componentName: "Emergencias", // ✅ string en vez de función
+      componentName: "Emergencias",
       props: {},
     };
   }
-  return null;
+
+  return {
+    componentName: "ListaItems",
+    props: {
+      categoriaId: lugar.id,
+      titulo: lugar.title,
+      colorBase: lugar.color || "#00008B",
+    },
+  };
 };
 
 export default function Navegacion() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [lugaresData, setLugaresData] = useState([]);
+  const appState = useRef(AppState.currentState);
+  const ultimaCarga = useRef(0);
 
-  const fetchLugaresData = async () => {
+  const fetchLugaresData = useCallback(async ({ silencioso = false } = {}) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        "https://api-caburgua.services.syntaxit.cl/api/v1/categorias/export"
-      );
+      if (!silencioso) setLoading(true);
+      const response = await fetch(API_URL, {
+        headers: { "Cache-Control": "no-cache" },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       setLugaresData(Array.isArray(data) ? data : []);
+      ultimaCarga.current = Date.now();
     } catch (error) {
       console.error("Error cargar lugares:", error);
-      setLugaresData([]);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchLugaresData();
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    fetchLugaresData({ silencioso: false });
+
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      const volvioActiva =
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active";
+      appState.current = nextAppState;
+
+      if (volvioActiva && Date.now() - ultimaCarga.current > 15000) {
+        fetchLugaresData({ silencioso: true });
+      }
+    });
+
+    return () => subscription.remove();
+  }, [fetchLugaresData]);
+
+  if (loading && lugaresData.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#000" />
       </View>
     );
   }
 
-  const lugaresActivos = lugaresData.filter(l => l.enable);
-
+  const lugaresActivos = lugaresData.filter((l) => l.enable);
   const lugaresConPantalla = lugaresActivos.filter(
     (lugar) => getScreenFromLugar(lugar) !== null
   );
 
-  const itemsActivos = lugaresActivos.flatMap((lugar) =>
-    Array.isArray(lugar.items) ? lugar.items.filter((item) => item.enable) : []
-  );
-
   return (
-    // ✅ Provee los datos sin causar ciclo de dependencias
-    <LugaresContext.Provider value={lugaresActivos}>
+    <LugaresContext.Provider
+      value={{
+        lugaresActivos,
+        loading,
+        refrescarLugares: () => fetchLugaresData({ silencioso: true }),
+      }}
+    >
       <NavigationContainer>
         <Stack.Navigator>
-
           <Stack.Screen
             name="Inicio"
             component={AppPrincipal}
@@ -92,25 +105,21 @@ export default function Navegacion() {
                 name={lugar.title}
                 component={Wrapper}
                 initialParams={{
-                  componentName: screenConfig.componentName, // ✅ string serializable
+                  componentName: screenConfig.componentName,
                   props: screenConfig.props,
                 }}
               />
             );
           })}
 
-          {itemsActivos.map((item) => (
-            <Stack.Screen
-              key={item.id}
-              name={item.title}
-              component={Wrapper}
-              initialParams={{
-                componentName: "ColaboradoresTemplate", // ✅ string serializable
-                props: item,
-              }}
-            />
-          ))}
-
+          <Stack.Screen
+            name="DetalleColaborador"
+            component={Wrapper}
+            initialParams={{
+              componentName: "ColaboradoresTemplate",
+              props: {},
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </LugaresContext.Provider>

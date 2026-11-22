@@ -1,26 +1,67 @@
-import React from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, ImageBackground,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ImageBackground,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useLugares } from "../Inicio/LugaresContext";
 
 const fondoDefault = require("../../assets/fondo.png");
 
 export default function ListaItems({
+  categoriaId = null,
   titulo = "",
   data = [],
   colorBase = "#00008B",
   fondo = null,
 }) {
   const navigation = useNavigation();
+  const { lugaresActivos, refrescarLugares } = useLugares();
+  const [refreshing, setRefreshing] = useState(false);
+  const ultimoFocus = useRef(0);
 
-  // ✅ Soporta tanto require() como string URL desde la API
+  // Sincroniza en silencio al entrar o volver a la categoría (máx. 1 vez cada 10s)
+  useFocusEffect(
+    useCallback(() => {
+      if (Date.now() - ultimoFocus.current > 10000) {
+        ultimoFocus.current = Date.now();
+        refrescarLugares();
+      }
+    }, [refrescarLugares])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refrescarLugares();
+    ultimoFocus.current = Date.now();
+    setRefreshing(false);
+  }, [refrescarLugares]);
+
+  const categoriaActual = categoriaId
+    ? lugaresActivos.find((l) => l.id === categoriaId)
+    : null;
+
+  const itemsVigentes = categoriaActual
+    ? Array.isArray(categoriaActual.items)
+      ? categoriaActual.items.filter((i) => i.enable)
+      : []
+    : data;
+
+  const tituloVigente = categoriaActual?.title || titulo;
+  const colorVigente = categoriaActual?.color || colorBase;
+
   const fondoSource = fondo
-    ? (typeof fondo === "string" ? { uri: fondo } : fondo)
+    ? typeof fondo === "string"
+      ? { uri: fondo }
+      : fondo
     : fondoDefault;
 
   const renderItems = (lista) =>
@@ -29,14 +70,14 @@ export default function ListaItems({
         key={item.id}
         style={[
           styles.item,
-          { borderColor: item.colorPrincipal || colorBase, borderWidth: 3 }
+          { borderColor: item.colorPrincipal || colorVigente, borderWidth: 3 },
         ]}
-        onPress={() => navigation.navigate(item.title)}
+        onPress={() => navigation.navigate("DetalleColaborador", { item })}
       >
         <LinearGradient
           colors={[
-            `${item.colorPrincipal || colorBase}cc`,
-            `${item.colorPrincipal || colorBase}80`
+            `${item.colorPrincipal || colorVigente}cc`,
+            `${item.colorPrincipal || colorVigente}80`,
           ]}
           style={styles.gradient}
         >
@@ -59,12 +100,21 @@ export default function ListaItems({
     ));
 
   return (
-    <ImageBackground source={fondoSource} style={styles.background} resizeMode="cover">
+    <ImageBackground
+      source={fondoSource}
+      style={styles.background}
+      resizeMode="cover"
+    >
       <BlurView intensity={0} tint="dark" style={StyleSheet.absoluteFill} />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
+      >
         <View style={styles.overlay}>
-          <Text style={styles.sectionTitle}>- {titulo}</Text>
-          <View style={styles.grid}>{renderItems(data)}</View>
+          <Text style={styles.sectionTitle}>- {tituloVigente}</Text>
+          <View style={styles.grid}>{renderItems(itemsVigentes)}</View>
         </View>
       </ScrollView>
     </ImageBackground>

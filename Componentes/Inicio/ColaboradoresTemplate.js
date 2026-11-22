@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import {
-  View, Text, StyleSheet, Image, TouchableOpacity,
-  Linking, ScrollView, Modal, FlatList,
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Linking,
+  ScrollView,
+  Modal,
+  FlatList,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -19,12 +26,12 @@ export default function ColaboradoresTemplate({
   coordenadas = { lat: 0, lng: 0 },
   colorFondo = "#B22222",
   colorPrincipal = "#00008B",
-  colorLogo = "transparent"  // ✅ valor por defecto válido
+  colorLogo = "transparent",
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const { lat, lng } = coordenadas;
+  const { lat, lng } = coordenadas || { lat: 0, lng: 0 };
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
@@ -83,13 +90,12 @@ export default function ColaboradoresTemplate({
   return (
     <ScrollView contentContainerStyle={[styles.scroll, { backgroundColor: colorFondo }]}>
       <View style={styles.container}>
-
         {/* HEADER */}
         <View style={styles.header}>
           {imagenLogo && (
             <Image
               source={imagenLogo}
-              style={[styles.logo, { borderColor: colorLogo || "transparent" }]} // ✅ corregido
+              style={[styles.logo, { borderColor: colorLogo || "transparent" }]}
             />
           )}
           <Text style={styles.title}>{title}</Text>
@@ -101,9 +107,16 @@ export default function ColaboradoresTemplate({
         {/* SERVICIOS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Servicios:</Text>
-          {(servicios || []).map((servicio) => (
-            <View key={servicio.icon} style={styles.itemRow}>
-              <MaterialCommunityIcons name={servicio.icon} size={22} color={colorPrincipal} />
+          {(servicios || []).map((servicio, index) => (
+            <View
+              key={`${servicio.icon || "check"}-${index}`}
+              style={styles.itemRow}
+            >
+              <MaterialCommunityIcons
+                name={servicio.icon || "check"}
+                size={22}
+                color={colorPrincipal}
+              />
               <Text style={styles.text}>{servicio.text}</Text>
             </View>
           ))}
@@ -129,8 +142,15 @@ export default function ColaboradoresTemplate({
             onPress={() => setSelectedImage(null)}
             activeOpacity={1}
           >
-            <Image source={selectedImage} style={styles.fullscreenImage} resizeMode="contain" />
-            <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedImage(null)}>
+            <Image
+              source={selectedImage}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSelectedImage(null)}
+            >
               <MaterialCommunityIcons name="close" size={30} color="#fff" />
             </TouchableOpacity>
           </TouchableOpacity>
@@ -139,29 +159,48 @@ export default function ColaboradoresTemplate({
         {/* HORARIOS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Horario de atención:</Text>
-          {(horario || []).length
-            ? (horario || []).map((h, i) => <Text key={i} style={styles.text}>{h}</Text>)
-            : <Text style={styles.text}>Sin información de horarios</Text>
-          }
+          {(horario || []).length ? (
+            (horario || []).map((h, i) => (
+              <Text key={i} style={styles.text}>
+                {h}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.text}>Sin información de horarios</Text>
+          )}
         </View>
 
         {/* VALORES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Valores:</Text>
-          {(valores || []).length
-            ? (valores || []).map((h, i) => <Text key={i} style={styles.text}>{h}</Text>)
-            : <Text style={styles.text}>Sin información de valores</Text>
-          }
+          {(valores || []).length ? (
+            (valores || []).map((h, i) => (
+              <Text key={i} style={styles.text}>
+                {h}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.text}>Sin información de valores</Text>
+          )}
         </View>
 
         {/* CONTACTO */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contactos:</Text>
-          {contacto.telefono ? (
+          {contacto?.telefono ? (
             <View style={styles.itemRow}>
-              <MaterialCommunityIcons name="phone" size={22} color={colorPrincipal} />
+              <MaterialCommunityIcons
+                name="phone"
+                size={22}
+                color={colorPrincipal}
+              />
               <TouchableOpacity onPress={() => llamar(contacto.telefono)}>
-                <Text style={[styles.text, { color: "#007AFF", textDecorationLine: "underline" }]}>
+                <Text
+                  style={[
+                    styles.text,
+                    { color: "#007AFF", textDecorationLine: "underline" },
+                  ]}
+                >
                   {contacto.telefono}
                 </Text>
               </TouchableOpacity>
@@ -170,8 +209,13 @@ export default function ColaboradoresTemplate({
           <View style={styles.itemRow}>
             <MaterialCommunityIcons name="web" size={22} color={colorPrincipal} />
             <TouchableOpacity onPress={abrirSitioWeb}>
-              <Text style={[styles.text, { color: "#007AFF", textDecorationLine: "underline" }]}>
-                {contacto.instagram || "Sitio / Instagram"}
+              <Text
+                style={[
+                  styles.text,
+                  { color: "#007AFF", textDecorationLine: "underline" },
+                ]}
+              >
+                {contacto?.instagram || "Sitio / Instagram"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -179,21 +223,43 @@ export default function ColaboradoresTemplate({
 
         {/* UBICACIÓN */}
         <TouchableOpacity style={styles.button} onPress={verificarApps}>
-          <MaterialCommunityIcons name="map-marker" size={22} color={colorPrincipal} />
-          <Text style={[styles.buttonText, { color: colorPrincipal }]}>Ver ubicación</Text>
+          <MaterialCommunityIcons
+            name="map-marker"
+            size={22}
+            color={colorPrincipal}
+          />
+          <Text style={[styles.buttonText, { color: colorPrincipal }]}>
+            Ver ubicación
+          </Text>
         </TouchableOpacity>
 
         {/* MODAL APPS */}
         <Modal transparent visible={modalVisible} animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
-              <Text style={[styles.modalTitle, { color: colorPrincipal }]}>Abrir con:</Text>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => abrirConApp("maps")}>
-                <MaterialCommunityIcons name="google-maps" size={22} color={colorPrincipal} />
+              <Text style={[styles.modalTitle, { color: colorPrincipal }]}>
+                Abrir con:
+              </Text>
+              <TouchableOpacity
+                style={styles.modalBtn}
+                onPress={() => abrirConApp("maps")}
+              >
+                <MaterialCommunityIcons
+                  name="google-maps"
+                  size={22}
+                  color={colorPrincipal}
+                />
                 <Text style={styles.modalBtnText}>Google Maps</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => abrirConApp("waze")}>
-                <MaterialCommunityIcons name="waze" size={22} color={colorPrincipal} />
+              <TouchableOpacity
+                style={styles.modalBtn}
+                onPress={() => abrirConApp("waze")}
+              >
+                <MaterialCommunityIcons
+                  name="waze"
+                  size={22}
+                  color={colorPrincipal}
+                />
                 <Text style={styles.modalBtnText}>Waze</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -202,7 +268,6 @@ export default function ColaboradoresTemplate({
             </View>
           </View>
         </Modal>
-
       </View>
     </ScrollView>
   );
@@ -218,10 +283,14 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     marginBottom: 10,
     borderWidth: 4,
-    // ✅ borderColor ahora viene del prop colorLogo con fallback a transparent
   },
-  title: { fontSize: 45, fontFamily: 'Jungle', color: "#fff" },
-  description: { textAlign: "center", fontSize: 20, color: "#fff", paddingHorizontal: 10 },
+  title: { fontSize: 45, fontFamily: "Jungle", color: "#fff" },
+  description: {
+    textAlign: "center",
+    fontSize: 20,
+    color: "#fff",
+    paddingHorizontal: 10,
+  },
   section: {
     width: "100%",
     marginTop: 23,
@@ -233,8 +302,18 @@ const styles = StyleSheet.create({
     elevation: 3,
     backgroundColor: "white",
   },
-  sectionTitle: { fontFamily: 'Jungle', fontSize: 22, color: "black", marginBottom: 12 },
-  galeriTitle: { fontFamily: 'Jungle', fontSize: 30, color: "white", marginBottom: 12 },
+  sectionTitle: {
+    fontFamily: "Jungle",
+    fontSize: 22,
+    color: "black",
+    marginBottom: 12,
+  },
+  galeriTitle: {
+    fontFamily: "Jungle",
+    fontSize: 30,
+    color: "white",
+    marginBottom: 12,
+  },
   itemRow: { flexDirection: "row", alignItems: "center", marginVertical: 4 },
   text: { marginLeft: 8, fontSize: 17, fontWeight: "bold", color: "black" },
   gallerySection: {
@@ -291,7 +370,12 @@ const styles = StyleSheet.create({
     width: 250,
     alignItems: "center",
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: "#00008B", marginBottom: 10 },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#00008B",
+    marginBottom: 10,
+  },
   modalBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   modalBtnText: { marginLeft: 8, fontSize: 16, color: "#333" },
   cancelText: { color: "red", marginTop: 10 },

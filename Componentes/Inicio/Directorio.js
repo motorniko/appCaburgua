@@ -3,20 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-
-// ✅ Importamos el context en vez de hacer fetch propio
 import { useLugares } from './LugaresContext';
 
 export function Directorio() {
   const navigation = useNavigation();
-
-  // ✅ Datos ya cargados por Navegacion, sin segundo fetch
-  const lugaresActivos = useLugares();
+  const { lugaresActivos } = useLugares();
 
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
-
         {lugaresActivos.length === 0 && (
           <Text>No hay categorías disponibles</Text>
         )}
@@ -28,7 +23,6 @@ export function Directorio() {
               styles.item,
               { borderColor: lugar.color || '#000', borderWidth: 3 }
             ]}
-            // ✅ Navegamos por title igual que antes (viene de la misma fuente)
             onPress={() => navigation.navigate(lugar.title)}
           >
             <LinearGradient
@@ -49,7 +43,6 @@ export function Directorio() {
             </LinearGradient>
           </TouchableOpacity>
         ))}
-
       </View>
     </View>
   );

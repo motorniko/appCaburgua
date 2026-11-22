@@ -1,36 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Linking, ActivityIndicator
+  Linking, ActivityIndicator, ScrollView, RefreshControl
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 
 export function Emergencias() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [emergencias, setEmergencias] = useState([]);
+  const ultimaCarga = useRef(0);
 
-  const fetchEmergencias = async () => {
+  const fetchEmergencias = useCallback(async ({ silencioso = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silencioso) setLoading(true);
       const response = await fetch(
-        "https://api-caburgua.services.syntaxit.cl/emergencias"
+        "https://api-caburgua.albertolagos59.workers.dev/emergencias",
+        { headers: { "Cache-Control": "no-cache" } }
       );
       const data = await response.json();
       setEmergencias(Array.isArray(data) ? data : []);
+      ultimaCarga.current = Date.now();
     } catch (error) {
       console.error("Error cargando emergencias:", error);
-      setEmergencias([]);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchEmergencias();
   }, []);
 
-  // ✅ Ahora usa canOpenURL igual que ColaboradoresTemplate
+  useEffect(() => {
+    fetchEmergencias({ silencioso: false });
+  }, [fetchEmergencias]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Date.now() - ultimaCarga.current > 15000) {
+        fetchEmergencias({ silencioso: true });
+      }
+    }, [fetchEmergencias])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchEmergencias({ silencioso: true });
+    setRefreshing(false);
+  }, [fetchEmergencias]);
+
   const llamar = async (numero) => {
     const url = `tel:${numero}`;
     const soportado = await Linking.canOpenURL(url);
@@ -41,7 +58,7 @@ export function Emergencias() {
     }
   };
 
-  if (loading) {
+  if (loading && emergencias.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#FF4B4B" />
@@ -50,7 +67,12 @@ export function Emergencias() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF4B4B" />
+      }
+    >
       <Text style={styles.title}>Emergencias</Text>
       <View style={styles.grid}>
         {emergencias.map(item => (
@@ -81,7 +103,7 @@ export function Emergencias() {
           Úsalos con responsabilidad.
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -89,7 +111,8 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 10,
+    marginBottom: 20,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 40,
