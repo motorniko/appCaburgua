@@ -21,6 +21,16 @@ export default function Wrapper({ route }) {
 }
 
 const styles = StyleSheet.create({
-  error: { flex: 1, justifyContent: "center", alignItems: "center" },
-  errorText: { fontSize: 18, color: "red" },
+  error: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#0b1d26",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#ff6b6b",
+    textAlign: "center",
+  },
 });

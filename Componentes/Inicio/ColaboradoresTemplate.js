@@ -9,11 +9,49 @@ import {
   ScrollView,
   Modal,
   FlatList,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import {
+  normalizarImagen,
+  esUrlSegura,
+  limpiarTelefono,
+  esColorClaro,
+} from "./utils";
+
+const COLUMNAS = 3;
+
+function normalizarEnlace(valor) {
+  const limpio = String(valor || "").trim();
+  if (!limpio) return "";
+  if (/^https?:\/\//i.test(limpio)) return limpio;
+  return `https://${limpio}`;
+}
+
+function enmascararUrl(valor) {
+  return String(valor || "")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .split(/[/?#]/)[0];
+}
+
+function obtenerIconoRedSocial(nombreRed) {
+  const red = String(nombreRed || "").trim().toLowerCase();
+  if (!red) return "share-variant";
+  if (red.includes("facebook") || red === "fb") return "facebook";
+  if (red.includes("tiktok")) return "music-note";
+  if (red.includes("youtube") || red.includes("yt")) return "youtube";
+  if (red.includes("whatsapp") || red.includes("wa")) return "whatsapp";
+  if (red.includes("twitter") || red === "x") return "twitter";
+  if (red.includes("linkedin")) return "linkedin";
+  return "share-variant";
+}
 
 export default function ColaboradoresTemplate({
-  id,
   title = "",
   description = "",
   servicios = [],
@@ -28,77 +66,143 @@ export default function ColaboradoresTemplate({
   colorPrincipal = "#00008B",
   colorLogo = "transparent",
 }) {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const { lat, lng } = coordenadas || { lat: 0, lng: 0 };
+  const logoSource = normalizarImagen(imagenLogo);
+  const imagenSeleccionadaSource = normalizarImagen(selectedImage);
+
+  // Ubicación: solo se muestra el botón si hay coordenadas válidas
+  const lat = Number(coordenadas?.lat);
+  const lng = Number(coordenadas?.lng);
+  const tieneUbicacion =
+    Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
-  const abrirConApp = async (app) => {
-    const url = app === "maps" ? mapsUrl : wazeUrl;
-    const puedeAbrir = await Linking.canOpenURL(url);
-    if (puedeAbrir) await Linking.openURL(url);
-    else alert(`No se pudo abrir ${app === "maps" ? "Google Maps" : "Waze"}.`);
+  // Abre directo y captura el error (canOpenURL no es fiable en Android 11+/iOS)
+  const abrirUrl = async (url, mensajeError) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert("No se pudo abrir", mensajeError);
+    }
+  };
+
+  const abrirConApp = (app) => {
     setModalVisible(false);
+    abrirUrl(
+      app === "maps" ? mapsUrl : wazeUrl,
+      `No se pudo abrir ${app === "maps" ? "Google Maps" : "Waze"}.`
+    );
   };
 
-  const verificarApps = async () => {
-    const puedeMaps = await Linking.canOpenURL("https://maps.google.com");
-    const puedeWaze = await Linking.canOpenURL("https://waze.com");
-    if (puedeMaps && puedeWaze) setModalVisible(true);
-    else if (puedeMaps) Linking.openURL(mapsUrl);
-    else if (puedeWaze) Linking.openURL(wazeUrl);
-    else alert("No se encontró una app de mapas instalada.");
-  };
-
-  const abrirSitioWeb = async () => {
-    if (!instagramUrl) {
-      alert("No hay enlace configurado.");
+  const abrirEnlaceExterno = (rawUrl, fallbackTexto = "") => {
+    const candidata = normalizarEnlace(rawUrl || fallbackTexto);
+    if (!candidata || !esUrlSegura(candidata)) {
+      Alert.alert("Sin enlace", "No hay un enlace válido configurado.");
       return;
     }
-    const soportado = await Linking.canOpenURL(instagramUrl);
-    if (soportado) Linking.openURL(instagramUrl);
-    else alert("No se puede abrir el enlace: " + instagramUrl);
+    abrirUrl(candidata, "No se puede abrir el enlace.");
   };
 
-  const llamar = async (numero) => {
-    const url = `tel:${numero}`;
-    const soportado = await Linking.canOpenURL(url);
-    if (soportado) Linking.openURL(url);
-    else console.error("Error al intentar llamar");
+  const abrirCorreo = (correo) => {
+    const limpio = String(correo || "").trim();
+    if (!limpio) return;
+    abrirUrl(`mailto:${limpio}`, "No se pudo abrir la aplicación de correo.");
   };
 
-  const renderItem = ({ item, index }) => (
-    <TouchableOpacity
-      style={[
-        styles.galleryItem,
-        {
-          transform: [
-            { scale: 1 },
-            { rotateZ: `${index % 2 === 0 ? "-3deg" : "3deg"}` },
-          ],
-        },
-      ]}
-      onPress={() => setSelectedImage(item)}
-      activeOpacity={0.9}
-    >
-      <Image source={item} style={styles.galleryImage} resizeMode="cover" />
-    </TouchableOpacity>
+  const llamar = (numero) => {
+    const tel = limpiarTelefono(numero);
+    if (!tel) return;
+    abrirUrl(`tel:${tel}`, "No se pudo iniciar la llamada.");
+  };
+
+  // Galería: se rellena la última fila para que no se estiren los ítems
+  const fotos = Array.isArray(galeria) ? galeria.filter(Boolean) : [];
+  const relleno = (COLUMNAS - (fotos.length % COLUMNAS)) % COLUMNAS;
+  const dataGaleria = [...fotos, ...Array(relleno).fill(null)];
+
+  const renderItem = ({ item, index }) => {
+    if (!item) return <View style={styles.galleryPlaceholder} />;
+    const itemSource = normalizarImagen(item);
+    return (
+      <TouchableOpacity
+        style={[
+          styles.galleryItem,
+          { transform: [{ rotateZ: index % 2 === 0 ? "-3deg" : "3deg" }] },
+        ]}
+        onPress={() => setSelectedImage(item)}
+        activeOpacity={0.9}
+        accessibilityRole="imagebutton"
+        accessibilityLabel={`Ver foto ${index + 1}`}
+      >
+        {itemSource && (
+          <Image
+            source={itemSource}
+            style={styles.galleryImage}
+            resizeMode="cover"
+          />
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const telefono = String(contacto?.telefono || "").trim();
+  const instagram = String(contacto?.instagram || "").trim();
+  const igUrl = String(instagramUrl || contacto?.instagramUrl || "").trim();
+  const email = String(contacto?.email || "").trim();
+  const sitioWeb = String(contacto?.sitioWeb || contacto?.sitio_web || "").trim();
+  const sitioWebTexto =
+    String(contacto?.sitioWebTexto || "").trim() || enmascararUrl(sitioWeb);
+  const otraRed = String(contacto?.otraRed || contacto?.otra_red || "").trim();
+  const otraRedUrl = String(contacto?.otraRedUrl || contacto?.otra_red_url || "").trim();
+
+  const mostrarInstagram = !!(igUrl || instagram);
+  const mostrarOtraRed = !!(otraRed || otraRedUrl);
+  const tieneContacto = !!(
+    telefono ||
+    mostrarInstagram ||
+    email ||
+    sitioWeb ||
+    mostrarOtraRed
   );
 
   return (
-    <ScrollView contentContainerStyle={[styles.scroll, { backgroundColor: colorFondo }]}>
+    <ScrollView
+      style={{ backgroundColor: colorFondo }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 12,
+        paddingBottom: insets.bottom + 28,
+      }}
+    >
       <View style={styles.container}>
+        <StatusBar style={esColorClaro(colorFondo) ? "dark" : "light"} />
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
         {/* HEADER */}
         <View style={styles.header}>
-          {imagenLogo && (
+          {logoSource && (
             <Image
-              source={imagenLogo}
+              source={logoSource}
               style={[styles.logo, { borderColor: colorLogo || "transparent" }]}
             />
           )}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} numberOfLines={2} adjustsFontSizeToFit>
+            {title}
+          </Text>
         </View>
 
         {/* DESCRIPCIÓN */}
@@ -123,33 +227,44 @@ export default function ColaboradoresTemplate({
         </View>
 
         {/* GALERÍA */}
-        <View style={[styles.gallerySection, { backgroundColor: colorFondo }]}>
-          <Text style={styles.galeriTitle}>Fotos</Text>
-          <FlatList
-            data={galeria || []}
-            keyExtractor={(_, i) => i.toString()}
-            renderItem={renderItem}
-            numColumns={3}
-            scrollEnabled={false}
-            columnWrapperStyle={styles.row}
-          />
-        </View>
+        {fotos.length > 0 && (
+          <View style={[styles.gallerySection, { backgroundColor: colorFondo }]}>
+            <Text style={styles.galeriTitle}>Fotos</Text>
+            <FlatList
+              data={dataGaleria}
+              keyExtractor={(_, i) => String(i)}
+              renderItem={renderItem}
+              numColumns={COLUMNAS}
+              scrollEnabled={false}
+              columnWrapperStyle={styles.row}
+            />
+          </View>
+        )}
 
         {/* MODAL FULLSCREEN */}
-        <Modal visible={!!selectedImage} transparent animationType="fade">
+        <Modal
+          visible={!!selectedImage}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSelectedImage(null)}
+        >
           <TouchableOpacity
             style={styles.fullscreenContainer}
             onPress={() => setSelectedImage(null)}
             activeOpacity={1}
           >
-            <Image
-              source={selectedImage}
-              style={styles.fullscreenImage}
-              resizeMode="contain"
-            />
+            {imagenSeleccionadaSource && (
+              <Image
+                source={imagenSeleccionadaSource}
+                style={styles.fullscreenImage}
+                resizeMode="contain"
+              />
+            )}
             <TouchableOpacity
-              style={styles.closeButton}
+              style={[styles.closeButton, { top: insets.top + 16 }]}
               onPress={() => setSelectedImage(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar foto"
             >
               <MaterialCommunityIcons name="close" size={30} color="#fff" />
             </TouchableOpacity>
@@ -174,9 +289,9 @@ export default function ColaboradoresTemplate({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Valores:</Text>
           {(valores || []).length ? (
-            (valores || []).map((h, i) => (
+            (valores || []).map((v, i) => (
               <Text key={i} style={styles.text}>
-                {h}
+                {v}
               </Text>
             ))
           ) : (
@@ -187,54 +302,132 @@ export default function ColaboradoresTemplate({
         {/* CONTACTO */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contactos:</Text>
-          {contacto?.telefono ? (
+
+          {telefono ? (
             <View style={styles.itemRow}>
               <MaterialCommunityIcons
                 name="phone"
                 size={22}
                 color={colorPrincipal}
               />
-              <TouchableOpacity onPress={() => llamar(contacto.telefono)}>
-                <Text
-                  style={[
-                    styles.text,
-                    { color: "#007AFF", textDecorationLine: "underline" },
-                  ]}
-                >
-                  {contacto.telefono}
-                </Text>
+              <TouchableOpacity
+                onPress={() => llamar(telefono)}
+                accessibilityRole="link"
+                accessibilityLabel={`Llamar al ${telefono}`}
+              >
+                <Text style={[styles.text, styles.link]}>{telefono}</Text>
               </TouchableOpacity>
             </View>
           ) : null}
-          <View style={styles.itemRow}>
-            <MaterialCommunityIcons name="web" size={22} color={colorPrincipal} />
-            <TouchableOpacity onPress={abrirSitioWeb}>
-              <Text
-                style={[
-                  styles.text,
-                  { color: "#007AFF", textDecorationLine: "underline" },
-                ]}
+
+          {mostrarInstagram ? (
+            <View style={styles.itemRow}>
+              <MaterialCommunityIcons
+                name="instagram"
+                size={22}
+                color={colorPrincipal}
+              />
+              {igUrl ? (
+                <TouchableOpacity
+                  onPress={() => abrirEnlaceExterno(igUrl)}
+                  accessibilityRole="link"
+                >
+                  <Text style={[styles.text, styles.link]}>
+                    {instagram || igUrl}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.text}>{instagram}</Text>
+              )}
+            </View>
+          ) : null}
+
+          {email ? (
+            <View style={styles.itemRow}>
+              <MaterialCommunityIcons
+                name="email"
+                size={22}
+                color={colorPrincipal}
+              />
+              <TouchableOpacity
+                onPress={() => abrirCorreo(email)}
+                accessibilityRole="link"
+                accessibilityLabel={`Enviar correo a ${email}`}
               >
-                {contacto?.instagram || "Sitio / Instagram"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text style={[styles.text, styles.link]}>{email}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {sitioWeb ? (
+            <View style={styles.itemRow}>
+              <MaterialCommunityIcons
+                name="web"
+                size={22}
+                color={colorPrincipal}
+              />
+              <TouchableOpacity
+                onPress={() => abrirEnlaceExterno(sitioWeb)}
+                accessibilityRole="link"
+                accessibilityLabel={`Abrir sitio web ${sitioWebTexto}`}
+              >
+                <Text style={[styles.text, styles.link]}>{sitioWebTexto}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {mostrarOtraRed ? (
+            <View style={styles.itemRow}>
+              <MaterialCommunityIcons
+                name={obtenerIconoRedSocial(otraRed)}
+                size={22}
+                color={colorPrincipal}
+              />
+              {otraRedUrl ? (
+                <TouchableOpacity
+                  onPress={() => abrirEnlaceExterno(otraRedUrl)}
+                  accessibilityRole="link"
+                >
+                  <Text style={[styles.text, styles.link]}>
+                    {otraRed || otraRedUrl}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.text}>{otraRed}</Text>
+              )}
+            </View>
+          ) : null}
+
+          {!tieneContacto ? (
+            <Text style={styles.text}>Sin información de contacto</Text>
+          ) : null}
         </View>
 
         {/* UBICACIÓN */}
-        <TouchableOpacity style={styles.button} onPress={verificarApps}>
-          <MaterialCommunityIcons
-            name="map-marker"
-            size={22}
-            color={colorPrincipal}
-          />
-          <Text style={[styles.buttonText, { color: colorPrincipal }]}>
-            Ver ubicación
-          </Text>
-        </TouchableOpacity>
+        {tieneUbicacion && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => setModalVisible(true)}
+            accessibilityRole="button"
+          >
+            <MaterialCommunityIcons
+              name="map-marker"
+              size={22}
+              color={colorPrincipal}
+            />
+            <Text style={[styles.buttonText, { color: colorPrincipal }]}>
+              Ver ubicación
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* MODAL APPS */}
-        <Modal transparent visible={modalVisible} animationType="fade">
+        <Modal
+          transparent
+          visible={modalVisible}
+          animationType="fade"
+          onRequestClose={() => setModalVisible(false)}
+        >
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
               <Text style={[styles.modalTitle, { color: colorPrincipal }]}>
@@ -274,9 +467,25 @@ export default function ColaboradoresTemplate({
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingVertical: 20 },
-  container: { paddingHorizontal: 20, alignItems: "center" },
-  header: { alignItems: "center", marginBottom: 15 },
+  container: {
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  topBar: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  backBtn: {
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    borderRadius: 20,
+    padding: 6,
+  },
+  header: { width: "100%", alignItems: "center", marginBottom: 15 },
   logo: {
     width: 110,
     height: 110,
@@ -284,7 +493,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 4,
   },
-  title: { fontSize: 45, fontFamily: "Jungle", color: "#fff" },
+  title: {
+    fontSize: 45,
+    fontFamily: "Jungle",
+    color: "#fff",
+    textAlign: "center",
+  },
   description: {
     textAlign: "center",
     fontSize: 20,
@@ -316,6 +530,7 @@ const styles = StyleSheet.create({
   },
   itemRow: { flexDirection: "row", alignItems: "center", marginVertical: 4 },
   text: { marginLeft: 8, fontSize: 17, fontWeight: "bold", color: "black" },
+  link: { color: "#007AFF", textDecorationLine: "underline" },
   gallerySection: {
     width: "100%",
     borderRadius: 30,
@@ -324,7 +539,6 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 2,
     borderColor: "white",
-    backgroundColor: "#00008B",
     alignItems: "center",
   },
   row: { justifyContent: "space-between" },
@@ -335,8 +549,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     padding: 4,
-    elevation: 5,
   },
+  galleryPlaceholder: { width: "32%", aspectRatio: 1, marginBottom: 10 },
   galleryImage: { width: "100%", height: "100%", borderRadius: 20 },
   fullscreenContainer: {
     flex: 1,
@@ -345,7 +559,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   fullscreenImage: { width: "90%", height: "80%" },
-  closeButton: { position: "absolute", top: 50, right: 30 },
+  closeButton: { position: "absolute", right: 30 },
   button: {
     flexDirection: "row",
     alignItems: "center",

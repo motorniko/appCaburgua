@@ -1,7 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Animated, AppState } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Animated,
+  AppState,
+} from "react-native";
 import { BlurView } from "expo-blur";
 import { useFocusEffect } from "@react-navigation/native";
+import { fetchJson } from "./api";
+
+const REFRESCO_MIN_MS = 15000;
+const ROTACION_MS = 5000;
+
+// Acepta true, 1 o "1" (D1/SQLite suele devolver 0/1)
+const estaActivo = (r) =>
+  r?.activo === true || r?.activo === 1 || r?.activo === "1";
 
 export function RecordatorioBarra({ refreshKey = 0 }) {
   const [recordatorios, setRecordatorios] = useState([]);
@@ -11,79 +26,96 @@ export function RecordatorioBarra({ refreshKey = 0 }) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const appState = useRef(AppState.currentState);
   const ultimaCarga = useRef(0);
+  const mounted = useRef(true);
+  const cargaEnCurso = useRef(false);
 
-  const fetchRecordatorios = useCallback(async ({ silencioso = false } = {}) => {
+  const total = recordatorios.length;
+  const totalRef = useRef(0);
+  totalRef.current = total;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const fetchRecordatorios = useCallback(async () => {
+    if (cargaEnCurso.current) return;
+    cargaEnCurso.current = true;
     try {
-      if (!silencioso) setLoading(true);
-      const response = await fetch(
-        "https://api-caburgua.albertolagos59.workers.dev/recordatorios",
-        { headers: { "Cache-Control": "no-cache" } }
-      );
-      if (!response.ok) throw new Error("Error en la respuesta del servidor");
-
-      const data = await response.json();
-      const activos = Array.isArray(data)
-        ? data.filter((r) => r.activo === true)
-        : [];
+      const data = await fetchJson("/recordatorios");
+      const activos = Array.isArray(data) ? data.filter(estaActivo) : [];
+      if (!mounted.current) return;
       setRecordatorios(activos);
       setIndex((prev) => (activos.length > 0 ? prev % activos.length : 0));
       ultimaCarga.current = Date.now();
     } catch (error) {
       console.error("Error cargando recordatorios:", error);
     } finally {
-      if (!silencioso) setLoading(false);
+      cargaEnCurso.current = false;
+      if (mounted.current) setLoading(false);
     }
   }, []);
 
+  // Carga inicial y pull-to-refresh (refreshKey cambia)
   useEffect(() => {
-    fetchRecordatorios({ silencioso: recordatorios.length > 0 });
+    fetchRecordatorios();
   }, [fetchRecordatorios, refreshKey]);
 
   useEffect(() => {
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
+    const subscription = AppState.addEventListener("change", (next) => {
       const volvioActiva =
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active";
-      appState.current = nextAppState;
-
-      if (volvioActiva && Date.now() - ultimaCarga.current > 15000) {
-        fetchRecordatorios({ silencioso: true });
+        /inactive|background/.test(appState.current) && next === "active";
+      appState.current = next;
+      if (volvioActiva && Date.now() - ultimaCarga.current > REFRESCO_MIN_MS) {
+        fetchRecordatorios();
       }
     });
-
     return () => subscription.remove();
   }, [fetchRecordatorios]);
 
   useFocusEffect(
     useCallback(() => {
-      if (Date.now() - ultimaCarga.current > 15000) {
-        fetchRecordatorios({ silencioso: true });
+      if (Date.now() - ultimaCarga.current > REFRESCO_MIN_MS) {
+        fetchRecordatorios();
       }
     }, [fetchRecordatorios])
   );
 
+  // Rotación: depende solo de la cantidad, así un refetch no reinicia el timer
   useEffect(() => {
-    if (recordatorios.length <= 1) return;
+    if (total <= 1) {
+      fadeAnim.setValue(1);
+      return;
+    }
 
     const intervalo = setInterval(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 400,
         useNativeDriver: true,
-      }).start(() => {
-        setIndex((prev) => (prev + 1) % recordatorios.length);
+      }).start(({ finished }) => {
+        if (!finished || !mounted.current) return;
+        setIndex((prev) =>
+          totalRef.current > 0 ? (prev + 1) % totalRef.current : 0
+        );
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 400,
           useNativeDriver: true,
         }).start();
       });
-    }, 5000);
+    }, ROTACION_MS);
 
-    return () => clearInterval(intervalo);
-  }, [recordatorios, fadeAnim]);
+    return () => {
+      clearInterval(intervalo);
+      fadeAnim.stopAnimation();
+      fadeAnim.setValue(1); // evita que el texto quede invisible
+    };
+  }, [total, fadeAnim]);
 
-  if (loading && recordatorios.length === 0) {
+  if (loading && total === 0) {
     return (
       <View style={styles.wrapper}>
         <BlurView intensity={50} tint="dark" style={styles.container}>
@@ -93,7 +125,7 @@ export function RecordatorioBarra({ refreshKey = 0 }) {
     );
   }
 
-  if (recordatorios.length === 0) return null;
+  if (total === 0) return null;
 
   const actual = recordatorios[index] || recordatorios[0];
 
@@ -116,21 +148,21 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   container: {
-    minHeight: 80,
+    minHeight: 68,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   title: {
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 16,
     color: "#fff",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   text: {
     color: "yellow",
-    fontSize: 17,
+    fontSize: 15,
     textAlign: "center",
     width: "100%",
   },
