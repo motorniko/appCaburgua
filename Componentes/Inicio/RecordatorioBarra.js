@@ -132,10 +132,12 @@ export function RecordatorioBarra({ refreshKey = 0 }) {
   return (
     <View style={styles.wrapper}>
       <BlurView intensity={50} tint="dark" style={styles.container}>
-        <Text style={styles.title}>RECUERDA:</Text>
-        <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
-          {actual?.texto}
-        </Animated.Text>
+        <Text style={styles.title}>IMPORTANTE:</Text>
+        <View style={styles.textSlot}>
+          <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
+            {actual?.texto}
+          </Animated.Text>
+        </View>
       </BlurView>
     </View>
   );
@@ -148,17 +150,24 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   container: {
-    minHeight: 68,
+    minHeight: 104,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   title: {
     fontWeight: "bold",
     fontSize: 16,
     color: "#fff",
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  textSlot: {
+    width: "100%",
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
   text: {
     color: "yellow",

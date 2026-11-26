@@ -24,7 +24,7 @@ export function Inicio() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 36,
+    marginTop: 10,
     marginBottom: 12,
     alignItems: 'center',
     paddingHorizontal: 16,

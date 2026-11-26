@@ -10,6 +10,7 @@ import { RecordatorioBarra } from './Componentes/Inicio/RecordatorioBarra';
 import { Clima } from './Componentes/Inicio/Clima';
 import { useLugares } from './Componentes/Inicio/LugaresContext';
 import { ScrimBarraEstado } from './Componentes/Inicio/ScrimBarraEstado';
+import { Propietario } from './Componentes/Inicio/propietario';
 
 export function AppPrincipal() {
   const insets = useSafeAreaInsets();
@@ -58,6 +59,7 @@ export function AppPrincipal() {
           <Clima refreshKey={refreshKey} />
           <Directorio />
           <RecordatorioBarra refreshKey={refreshKey} />
+          <Propietario />
         </View>
       </ScrollView>
       <ScrimBarraEstado />
