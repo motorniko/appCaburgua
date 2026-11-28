@@ -1,4 +1,3 @@
-// Este es el inicio de la aplicación
 import { View, Text, StyleSheet } from 'react-native';
 
 export function Inicio() {
@@ -9,47 +8,60 @@ export function Inicio() {
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        CABURGUA
+        CABURGUA APP
       </Text>
-      <Text
-        style={styles.subTitle}
-        numberOfLines={2}
-        adjustsFontSizeToFit
-      >
-        Todo el turismo de la zona en una sola App.
-      </Text>
+
+      <View style={styles.subTitleBadge}>
+        <Text
+          style={styles.subTitle}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          Todo el turismo de la zona en una sola App
+        </Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 10,
-    marginBottom: 12,
+    marginTop: 5,
+    marginBottom: 10,
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 42, // Deja espacio libre en las esquinas para botones superiores (ej. ajustes)
+    width: '100%',
   },
 
   title: {
-    fontSize: 70,
+    fontSize: 40,
     fontFamily: 'Jungle',
-    color: 'white',
+    color: '#FFFFFF',
     textAlign: 'center',
-    // Sombra aventurera estilo logo
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 3, height: 5 },
-    textShadowRadius: 1,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(10, 25, 41, 0.75)',
+    textShadowOffset: { width: 2, height: 3 },
+    textShadowRadius: 4,
+  },
+
+  subTitleBadge: {
+    marginTop: 2,
+    backgroundColor: 'rgba(12, 36, 54, 0.45)',
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
 
   subTitle: {
-    marginTop: 5,
-    fontSize: 20,
+    fontSize: 12.5,
     fontFamily: 'Jungle',
-    color: 'rgb(255, 255, 255)',
+    color: '#FEF9C3',
     textAlign: 'center',
-    // Sombra aventurera estilo logo
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 1,
+    letterSpacing: 0.4,
+    textShadowColor: 'rgba(0, 0, 0, 0.65)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });

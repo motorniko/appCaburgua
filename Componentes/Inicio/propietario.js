@@ -13,8 +13,8 @@ export function Propietario() {
 
 const styles = StyleSheet.create({
     letra: {
-        marginTop: 20,
-        fontSize: 18,
+        marginTop: 5,
+        fontSize: 12,
         textAlign: 'center',
         fontFamily: 'Jungle',
         color: 'white',

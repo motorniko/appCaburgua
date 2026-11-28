@@ -5,8 +5,8 @@ import { fetchJson } from "./api";
 
 const CLIMA_ERROR = {
   ciudad: "Caburgua",
-  temperatura: "-- °C",
-  descripcion: "No se pudo cargar el clima",
+  temperatura: "--°C",
+  descripcion: "No disponible",
   icono: "01d",
 };
 
@@ -18,55 +18,54 @@ export function Clima({ refreshKey = 0 }) {
     try {
       const data = await fetchJson("/clima");
       const temp = Number(data?.temperatura);
+      const desc = data?.descripcion || "No disponible";
       setClima({
         ciudad: data?.ciudad || "Caburgua",
-        temperatura: Number.isFinite(temp) ? `${Math.round(temp)} °C` : "-- °C",
-        descripcion: data?.descripcion || "Clima no disponible",
+        temperatura: Number.isFinite(temp) ? `${Math.round(temp)}°C` : "--°C",
+        descripcion: desc.charAt(0).toUpperCase() + desc.slice(1),
         icono: /^\d{2}[dn]$/.test(data?.icono) ? data.icono : "01d",
       });
     } catch (error) {
       console.error("Error cargando clima:", error);
-      // Si ya había datos, se conservan en vez de pisarlos con el error
       setClima((prev) => prev ?? CLIMA_ERROR);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Carga inicial y cada vez que cambia refreshKey (pull-to-refresh)
   useEffect(() => {
     cargarClima();
   }, [cargarClima, refreshKey]);
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.blurWrapper}>
+      <View style={styles.blurBox}>
         <BlurView intensity={50} tint="dark" style={styles.container}>
-          <Text style={styles.title} numberOfLines={1}>
-            Clima Local
-          </Text>
-
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator size="small" color="#FDE68A" />
           ) : clima ? (
-            <View style={styles.info}>
-              <Image
-                source={{
-                  uri: `https://openweathermap.org/img/wn/${clima.icono}@2x.png`,
-                }}
-                style={styles.icon}
-              />
-              <View style={styles.textGroup}>
-                <Text style={styles.text} numberOfLines={1} adjustsFontSizeToFit>
-                  {clima.ciudad} · {clima.temperatura}
+            <View style={styles.row}>
+              <View style={styles.leftGroup}>
+                <Image
+                  source={{
+                    uri: `https://openweathermap.org/img/wn/${clima.icono}@2x.png`,
+                  }}
+                  style={styles.icon}
+                />
+                <Text style={styles.city} numberOfLines={1}>
+                  {clima.ciudad}
                 </Text>
-                <Text style={styles.subtext} numberOfLines={1}>
-                  {clima.descripcion}
+                <Text style={styles.temp} numberOfLines={1}>
+                  {clima.temperatura}
                 </Text>
               </View>
+
+              <Text style={styles.desc} numberOfLines={1}>
+                {clima.descripcion}
+              </Text>
             </View>
           ) : (
-            <Text style={styles.text}>Sin datos del clima</Text>
+            <Text style={styles.desc}>Sin datos del clima</Text>
           )}
         </BlurView>
       </View>
@@ -76,47 +75,64 @@ export function Clima({ refreshKey = 0 }) {
 
 const styles = StyleSheet.create({
   wrapper: {
-    width: "92%",
-    marginVertical: 10,
-    alignItems: "center",
+    width: "95%",
+    marginTop: 5,
+    marginBottom: 15,
   },
-  blurWrapper: {
+  blurBox: {
     borderRadius: 15,
     overflow: "hidden",
-    width: "100%",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.24)",
   },
   container: {
-    minHeight: 68,
+    height: 46,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 14,
   },
-  title: {
-    fontWeight: "bold",
-    fontSize: 18,
-    color: "#fff",
-    marginRight: 10,
-  },
-  info: {
+  row: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  textGroup: {
-    flex: 1,
-  },
-  text: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  subtext: {
-    color: "#ddd",
-    fontSize: 13,
+  leftGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
   },
   icon: {
-    width: 38,
-    height: 38,
+    width: 34,
+    height: 34,
+    marginRight: 6,
+  },
+  city: {
+    fontFamily: "Jungle",
+    fontSize: 16,
+    letterSpacing: 0.6,
+    color: "#FFFFFF",
     marginRight: 8,
+    textShadowColor: "rgba(0, 0, 0, 0.65)",
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 2,
+  },
+  temp: {
+    color: "#FDE68A",
+    fontSize: 15,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  desc: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    maxWidth: "42%",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

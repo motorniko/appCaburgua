@@ -118,9 +118,11 @@ export function RecordatorioBarra({ refreshKey = 0 }) {
   if (loading && total === 0) {
     return (
       <View style={styles.wrapper}>
-        <BlurView intensity={50} tint="dark" style={styles.container}>
-          <ActivityIndicator size="small" color="#fff" />
-        </BlurView>
+        <View style={styles.blurBox}>
+          <BlurView intensity={50} tint="dark" style={styles.container}>
+            <ActivityIndicator size="small" color="#FDE68A" />
+          </BlurView>
+        </View>
       </View>
     );
   }
@@ -131,14 +133,29 @@ export function RecordatorioBarra({ refreshKey = 0 }) {
 
   return (
     <View style={styles.wrapper}>
-      <BlurView intensity={50} tint="dark" style={styles.container}>
-        <Text style={styles.title}>IMPORTANTE:</Text>
-        <View style={styles.textSlot}>
-          <Animated.Text style={[styles.text, { opacity: fadeAnim }]}>
-            {actual?.texto}
-          </Animated.Text>
-        </View>
-      </BlurView>
+      <View style={styles.blurBox}>
+        <BlurView intensity={50} tint="dark" style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.title} numberOfLines={1}>
+              IMPORTANTE
+            </Text>
+            {total > 1 && (
+              <Text style={styles.counter}>
+                {(index % total) + 1}/{total}
+              </Text>
+            )}
+          </View>
+          <View style={styles.textSlot}>
+            <Animated.Text
+              style={[styles.text, { opacity: fadeAnim }]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+            >
+              {actual?.texto}
+            </Animated.Text>
+          </View>
+        </BlurView>
+      </View>
     </View>
   );
 }
@@ -146,33 +163,56 @@ export function RecordatorioBarra({ refreshKey = 0 }) {
 const styles = StyleSheet.create({
   wrapper: {
     width: "95%",
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  blurBox: {
     borderRadius: 15,
     overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.24)",
   },
   container: {
-    minHeight: 104,
+    height: 76,
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingVertical: 10,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
   },
   title: {
-    fontWeight: "bold",
+    fontFamily: "Jungle",
     fontSize: 16,
-    color: "#fff",
-    marginBottom: 8,
+    letterSpacing: 0.6,
+    color: "#FFFFFF",
+    textShadowColor: "rgba(0, 0, 0, 0.65)",
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 2,
+  },
+  counter: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "rgba(255, 255, 255, 0.72)",
   },
   textSlot: {
+    flex: 1,
     width: "100%",
-    minHeight: 44,
     justifyContent: "center",
     alignItems: "center",
   },
   text: {
-    color: "yellow",
-    fontSize: 15,
+    color: "#FDE68A",
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 18,
     textAlign: "center",
-    width: "100%",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
